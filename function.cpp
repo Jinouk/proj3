@@ -30,13 +30,20 @@ double stack[32][16];
 type polygonType;
 int stackCounter;
 
+int finalPixel[600][600];
+double zbuffer[600][600];
+
 void clipping(list <edge>& polygon);
+void lineDrawing(list <edge>& polygon); 
 void normalize(double * vector, int count);
 void translate(double * matrix, double x, double y, double z);
+
+
 
 void viewNormalization(double * eye, double * center, double * up, 
                        double right, double left, double top, double bottom,
                        double near, double far) {
+  
   double w[3], u[3], v[3];
   double matrix2[16], resultMatrix[16];
   double a, b; 
@@ -53,8 +60,6 @@ void viewNormalization(double * eye, double * center, double * up,
 
   crossproduct(up, w, u);
   
-  
-
   normalize(u, 3);
 
   crossproduct(w, u, v);
@@ -219,16 +224,34 @@ void JLEnd() {
  
   list <edge> ::iterator iterator;
 
-  for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
-    cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << " } " <<endl; 
-  }
+  if(polygonType == triangle){
+    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
+      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << " } " <<endl; 
+    }
 
-  clipping(polygon_tri);
+    clipping(polygon_tri);
 
-  for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
-    cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << "} " << endl; 
+    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
+      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << "} " << endl; 
+    }
+    
+    lineDrawing(polygon_tri);
   }
- 
+  
+  
+  else {
+    for(iterator = polygon_quad.begin(); iterator != polygon_quad.end(); ++iterator) {
+      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << " } " <<endl; 
+    }
+
+    clipping(polygon_quad);
+
+    for(iterator = polygon_quad.begin(); iterator != polygon_quad.end(); ++iterator) {
+      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << "} " << endl; 
+    }
+    
+    lineDrawing(polygon_quad);
+  }
   
 
   triangle_strip.push_back(polygon_tri);
@@ -366,7 +389,7 @@ void clipping(list <edge>& polygon) {
     // both points outside
     if (point1x > 1 && point2x > 1) {
       //discard this edge
-      polygon.erase(iterator);
+      //polygon.erase(iterator);
     }
 
     // only first point
@@ -396,7 +419,7 @@ void clipping(list <edge>& polygon) {
     // both points outside
     if (point1y < -1 && point2y < -1) {
       //discard this edge
-      polygon.erase(iterator);
+      //polygon.erase(iterator);
     }
 
     // only first point
@@ -425,7 +448,7 @@ void clipping(list <edge>& polygon) {
     // both points outside
     if (point1x < -1 && point2x < -1) {
       //discard this edge
-      polygon.erase(iterator);
+      //polygon.erase(iterator);
     }
 
     // only first point
@@ -454,7 +477,7 @@ void clipping(list <edge>& polygon) {
     // both points outside
     if (point1y > 1 && point2y > 1) {
       //discard this edge
-      polygon.erase(iterator);
+      //polygon.erase(iterator);
     }
 
     // only first point
@@ -477,8 +500,73 @@ void clipping(list <edge>& polygon) {
     else {
       // do nothing?
     } 
-    
-    cout << "loop " << iterator->v1.z <<  endl;
   }
+}
+
+void lineDrawing(list <edge>& polygon) {
+  list <edge>::iterator iterator;
+
+  for(iterator = polygon.begin(); iterator != polygon.end(); ++iterator) {
+    double point1x = iterator->v1.x * 300;
+    double point1y = iterator->v1.y * 300;
+    
+    double point2x = iterator->v2.x * 300;
+    double point2y = iterator->v2.y * 300;
+
+    double slope = (point1y - point2y) / (point1x - point2x);
+    double yIntercept = point1y - slope * point1x;
+
+    int start = round(point1x);
+    int end = round(point2x);
+    int deltaX;
+    
+    if( !(point1x > 300 && point2x > 300) && !(point1x < -300 && point2x < -300) &&
+        !(point1y > 300 && point2y > 300) && !(point1y < -300 && point2y < -300)){
+      
+      // horizontal check
+      if(start != end){
+        if( (point1x - point2x) < 0)
+          deltaX = 1;
+        else
+          deltaX = -1;
+        cout << deltaX << endl;
+        cout << "Start: " << start << " End: " << end <<endl;
+        while(start != end) {
+          //cout << "start: " << deltaX << " end: " << end << endl;
+          int yPixel = slope * start + yIntercept;
+          
+          finalPixel[(int)round(yPixel) + 299][start + 299] = 1;
+          start += deltaX;
+        }  
+      }
+      
+      // vertical check 
+      else {
+        start = round(point1y);
+        end = round(point2y);
+        
+        if( (point1y - point2y) < 0)
+          deltaX = 1;
+        else
+          deltaX = -1;
+     
+        while(start != end) {
+          //cout << "start: " << deltaX << " end: " << end << endl;
+          
+          finalPixel[start + 299][(int) point1x + 299] = 1;
+          start += deltaX;
+        }  
+      }
+    }
+  }
+  for(int i = 599; i >= 0; i--){
+      for(int j = 0; j < 600; j++){
+        if(finalPixel[i][j] == 1)
+          cout << "|";
+        else
+          cout << ".";
+      }
+      cout << endl;
+    }
 }
 
