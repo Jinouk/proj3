@@ -19,7 +19,8 @@ list < edge > polygon_tri;
 list < edge > polygon_quad;
 
 int previous_vertex;
-int counter; 
+int counter;
+int leftOverFlow, rightOverFlow, topOverFlow, bottomOverFlow;
 vertex first;
 vertex previous;
 
@@ -31,10 +32,12 @@ type polygonType;
 int stackCounter;
 
 int finalPixel[600][600];
+int tempTable[600][600];
 double zbuffer[600][600];
 
 void clipping(list <edge>& polygon);
-void lineDrawing(list <edge>& polygon); 
+void lineDrawing(list <edge>& polygon);
+void polygonFilling(list <edge>& polygon); 
 void normalize(double * vector, int count);
 void translate(double * matrix, double x, double y, double z);
 
@@ -207,12 +210,15 @@ void JLScale(double xScale, double yScale, double zScale) {
 void JLPushMatrix() {
   for(int i= 0; i < 4; i++)
     for (int j = 0; j< 4; j++)
-      stack[stackCounter - 1][i*4+j] = modelMatrix[i*4+j];
+      stack[stackCounter][i*4+j] = modelMatrix[i*4+j];
   
   stackCounter++;
 }
 
 void JLPopMatrix() {
+  for(int i= 0; i < 4; i++)
+    for (int j = 0; j< 4; j++)
+      modelMatrix[i*4+j] = stack[stackCounter - 1][i*4+j];
   stackCounter--;
 }
 
@@ -221,7 +227,7 @@ void JLBegin(type m) {
 }
 
 void JLEnd() {
- 
+  
   list <edge> ::iterator iterator;
 
   if(polygonType == triangle){
@@ -236,6 +242,7 @@ void JLEnd() {
     }
     
     lineDrawing(polygon_tri);
+    //polygonFilling(polygon_tri);
   }
   
   
@@ -251,8 +258,21 @@ void JLEnd() {
     }
     
     lineDrawing(polygon_quad);
+    polygonFilling(polygon_quad);
   }
   
+  for(int i = 599; i >= 0; i--){
+    for(int j = 0; j < 600; j++){
+      if(tempTable[i][j] == 1){
+        finalPixel[i][j] = 1;
+        tempTable[i][j] = 0;
+        cout << "@";
+      }
+      else
+        cout << ".";
+    }
+    cout << endl;
+  }
 
   triangle_strip.push_back(polygon_tri);
   polygon_tri.clear();
@@ -395,6 +415,7 @@ void clipping(list <edge>& polygon) {
     // only first point
     else if (point1x > 1) {
       // find point where x  = 1
+      rightOverFlow = 1;
       double newY = slopeXY + yIntercept;
       double newZ = slopeXZ + zIntercept;
       vertex newVertex = {1, newY, newZ};
@@ -403,6 +424,7 @@ void clipping(list <edge>& polygon) {
 
     // only second point
     else if (point2x > 1) {
+      rightOverFlow = 1;
       double newY = slopeXY + yIntercept;
       double newZ = slopeXZ + zIntercept;
       vertex newVertex = {1, newY, newZ};
@@ -424,6 +446,7 @@ void clipping(list <edge>& polygon) {
 
     // only first point
     else if (point1y < -1) {
+      bottomOverFlow = 1;
       double newX = (-1 - yIntercept) / slopeXY;
       double newZ = (-1 - yInterceptYZ) / slopeYZ;
       vertex newVertex = {newX, -1,newZ};
@@ -432,6 +455,7 @@ void clipping(list <edge>& polygon) {
 
     // only second point
     else if (point2y < -1) {
+      bottomOverFlow = 1;
       double newX = (-1 - yIntercept) / slopeXY;
       double newZ = (-1 - yInterceptYZ) / slopeYZ;
       vertex newVertex = {newX, -1,newZ};
@@ -453,6 +477,7 @@ void clipping(list <edge>& polygon) {
 
     // only first point
     else if (point1x < -1) {
+      leftOverFlow = 1;
       double newY = -slopeXY + yIntercept;
       double newZ = -slopeXZ + zIntercept;
       vertex newVertex = {-1, newY,newZ};
@@ -461,6 +486,7 @@ void clipping(list <edge>& polygon) {
 
     // only second point
     else if (point2x < -1) {
+      leftOverFlow = 1;
       double newY = -slopeXY + yIntercept;
       double newZ = -slopeXZ + zIntercept;
       vertex newVertex = {-1, newY,newZ};
@@ -482,6 +508,7 @@ void clipping(list <edge>& polygon) {
 
     // only first point
     else if (point1y > 1) {
+      topOverFlow = 1;
       double newX = (1 - yIntercept) / slopeXY;
       double newZ = (1 - yInterceptYZ) / slopeYZ;
       vertex newVertex = {newX, 1,newZ};
@@ -490,6 +517,7 @@ void clipping(list <edge>& polygon) {
 
     // only second point
     else if (point2y > 1) {
+      topOverFlow = 1;
       double newX = (1 - yIntercept) / slopeXY;
       double newZ = (1 - yInterceptYZ) / slopeYZ;
       vertex newVertex = {newX, 1,newZ};
@@ -522,7 +550,8 @@ void lineDrawing(list <edge>& polygon) {
     
     if( !(point1x > 300 && point2x > 300) && !(point1x < -300 && point2x < -300) &&
         !(point1y > 300 && point2y > 300) && !(point1y < -300 && point2y < -300)){
-      
+      cout << " yinter: " << yIntercept << " slope: " << slope << endl;
+      // check through x
       // horizontal check
       if(start != end){
         if( (point1x - point2x) < 0)
@@ -535,13 +564,37 @@ void lineDrawing(list <edge>& polygon) {
           //cout << "start: " << deltaX << " end: " << end << endl;
           int yPixel = slope * start + yIntercept;
           
-          finalPixel[(int)round(yPixel) + 299][start + 299] = 1;
+          tempTable[yPixel + 299][start + 299] = 1;
+          
+          cout << "x: " << start + 299 << " y: " << yPixel << endl;
           start += deltaX;
-        }  
+        }
+        /*
+        int deltaY;
+        start = round(point1y);
+        end = round(point2y);
+        
+        if(start != end) {
+          if( (start - end) < 0)
+            deltaY = 1;
+          else
+            deltaY = -1;
+          cout << "start: " << start << " end: " << end << endl;
+          cout << "deltaY: " << deltaY << " yinter: " << yIntercept << " slope: " << slope << endl;
+          while(start != end) {
+            int xPixel = (start - yIntercept) / slope;
+            cout << "x: " << xPixel << endl;
+            
+            tempTable[start + 299][xPixel + 299] = 1;
+            start += deltaY; 
+          }
+        }  */
       }
+      
       
       // vertical check 
       else {
+      cout << " yinter: " << yIntercept << " slope: " << slope << endl;
         start = round(point1y);
         end = round(point2y);
         
@@ -553,20 +606,86 @@ void lineDrawing(list <edge>& polygon) {
         while(start != end) {
           //cout << "start: " << deltaX << " end: " << end << endl;
           
-          finalPixel[start + 299][(int) point1x + 299] = 1;
+          tempTable[start + 299][(int) point1x + 299] = 1;
           start += deltaX;
         }  
-      }
+      }      
     }
   }
-  for(int i = 599; i >= 0; i--){
-      for(int j = 0; j < 600; j++){
-        if(finalPixel[i][j] == 1)
-          cout << "|";
-        else
-          cout << ".";
-      }
-      cout << endl;
-    }
+  
 }
+
+void polygonFilling(list <edge>& polygon){
+  
+  
+  int numPoints = 0;
+  double maxY = -1, minY = 1;
+  list <vertex> points; 
+  
+  list <edge> ::iterator iterator;
+  for(iterator = polygon.begin(); iterator != polygon.end(); ++iterator) {
+    if(iterator->v1.y > maxY)
+      maxY = iterator->v1.y;
+    if(iterator->v2.y > maxY)
+      maxY = iterator->v2.y;
+    if(iterator->v1.y < minY)
+      minY = iterator->v1.y;
+    if(iterator->v1.y > maxY)
+      minY = iterator->v2.y;
+  }
+  
+  minY = minY * 300 + 299;
+  maxY = maxY * 300 + 299;
+  
+  cout << minY << "               " << maxY << endl;
+  
+  if(maxY > 600) 
+    maxY = 599;
+  if(minY < -600)
+    minY = 0;  
+  
+  
+  for(int y = maxY; y >= minY; y--){
+    for(int j = 0; j < 600; j++){
+      if(tempTable[y][j] == 1){
+        vertex newPoint = {j, y, 0};
+        points.push_back(newPoint);
+        numPoints++;
+        
+        cout << "new: " << newPoint.x << " " << newPoint.y << endl;
+      }
+    }
+    
+    cout << "num point: " << numPoints << endl;
+    if(numPoints == 1){
+      cout << "number okay? " << endl;
+      if(rightOverFlow == 1){
+        cout << "front: " << points.front().x << " back: " << points.back().x << endl;
+        vertex borderPoint = {599, y, 0};
+        points.push_back(borderPoint);
+        
+         
+        cout << "front: " << points.front().x << " back: " << points.back().x << endl;
+      }
+     
+      else{
+        
+        vertex borderPoint = {0, y, 0};
+        points.push_front(borderPoint);
+        cout << "front: " << points.front().x << " back: " << points.back().x << endl;
+      }     
+      
+    }
+    
+    edge e = { points.front(), points.back() };
+    points.clear();
+    
+    for(int i = e.v1.x; i <= e.v2.x; i++){
+
+      tempTable[y][i] = 1;
+    }
+    numPoints = 0;
+  }
+}
+
 

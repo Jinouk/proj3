@@ -22,12 +22,25 @@ int main() {
     JLVertex(-1,1,0);
   JLEnd();
   
-  JLTranslate(2,0,0);
+  JLPushMatrix();
   
+  
+  JLTranslate(-10,9,0);
+  JLScale(1,2,0);
   JLBegin(triangle);
     JLVertex(-1, 0, 0);
     JLVertex(1, 0, 0);
     JLVertex(0, 1, 0);
   JLEnd();
+  /*
+  JLPopMatrix();
+  JLTranslate(-1,0,0);
+  
+  JLBegin(triangle);
+    JLVertex(-1, 0, 0);
+    JLVertex(1, 0, 0);
+    JLVertex(0, 1, 0);
+  JLEnd();*/
+  
   return 0;
 }
