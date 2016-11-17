@@ -13,7 +13,7 @@ void viewNormalization(double * eye, double * center, double * up,
 void JLPushMatrix();
 void JLPopMatrix();
 void JLTranslate(double x, double y, double z);
-void JLRotate(double angle, double xAxis, double yAxis, double zAxis);
+void JLRotate(double angle, int xAxis, int yAxis, int zAxis);
 void JLScale(double xScale, double yScale, double zScale);
 void JLBegin(type m);
 void JLEnd();

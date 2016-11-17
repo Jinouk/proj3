@@ -17,6 +17,10 @@ typedef struct edge {
 list < edge > polygon_tri; 
 list < edge > polygon_quad;
 
+list <vertex> globalPoints;
+
+double nearK, farK; 
+
 char color = 'b';
 
 int previous_vertex;
@@ -26,6 +30,7 @@ vertex first;
 vertex previous;
 
 double viewingMatrix[16];
+double rotationMatrix[16];
 double modelMatrix[16]; 
 double stack[32][16];
 
@@ -42,22 +47,43 @@ void polygonFilling(list <edge>& polygon);
 void findZ(list <edge> & polygon); 
 void normalize(double * vector, int count);
 void translate(double * matrix, double x, double y, double z);
-
+void rotate(double * matrix, double angle, double x, double y, double z);
 
 void viewNormalization(double * eye, double * center, double * up, 
                        double right, double left, double top, double bottom,
                        double near, double far) {
+  nearK = near;
+  farK = far;
   
   for ( int i = 0; i < window_size; i++){
     for ( int j = 0; j < window_size; j++){
-      zbuffer[i][j] = 3.0;
+      zbuffer[i][j] = 10000.0;
     }
   }
 
   double w[3], u[3], v[3];
-  double matrix2[16], resultMatrix[16];
-  double a, b; 
-
+  double projectionMatrix[16], matrix2[16], resultMatrix[16];
+  
+  // projection transform matrix
+  cout << "Projection Matrix" << endl;
+  projectionMatrix[0] = ( 2 * near ) / ( right -  left);
+  projectionMatrix[1] = 0;
+  projectionMatrix[2] = ( right + left ) / ( right - left);
+  projectionMatrix[3] = 0;
+  projectionMatrix[4] = 0;
+  projectionMatrix[5] = ( 2 * near ) / ( top - bottom );  
+  projectionMatrix[6] = ( top + bottom ) / ( top - bottom );
+  projectionMatrix[7] = 0;
+  projectionMatrix[8] = 0;
+  projectionMatrix[9] = 0;
+  projectionMatrix[10] = ( -1 * ( far + near ) ) / ( far - near );
+  projectionMatrix[11] =  ( -2 * far * near ) / ( far - near );
+  projectionMatrix[12] = 0;
+  projectionMatrix[13] = 0;
+  projectionMatrix[14] = -1;
+  projectionMatrix[15] = 0; 
+  
+  // viewing transform matrix
   w[0] = eye[0] - center[0];
   w[1] = eye[1] - center[1];
   w[2] = eye[2] - center[2];
@@ -74,101 +100,42 @@ void viewNormalization(double * eye, double * center, double * up,
 
   crossproduct(w, u, v);
 
-  matrix2[0] = u[0];
-  matrix2[1] = u[1];
-  matrix2[2] = u[2];
-  matrix2[3] = 0;
+  rotationMatrix[0] = u[0];
+  rotationMatrix[1] = u[1];
+  rotationMatrix[2] = u[2];
+  rotationMatrix[3] = 0;
 
-  matrix2[4] = v[0];
-  matrix2[5] = v[1];
-  matrix2[6] = v[2];
-  matrix2[7] = 0;
+  rotationMatrix[4] = v[0];
+  rotationMatrix[5] = v[1];
+  rotationMatrix[6] = v[2];
+  rotationMatrix[7] = 0;
 
-  matrix2[8] = w[0];
-  matrix2[9] = w[1];
-  matrix2[10] = w[2];
-  matrix2[11] = 0;
+  rotationMatrix[8] = w[0];
+  rotationMatrix[9] = w[1];
+  rotationMatrix[10] = w[2];
+  rotationMatrix[11] = 0;
 
-  matrix2[12] = 0;
-  matrix2[13] = 0;
-  matrix2[14] = 0;
-  matrix2[15] = 1;
+  rotationMatrix[12] = 0;
+  rotationMatrix[13] = 0;
+  rotationMatrix[14] = 0;
+  rotationMatrix[15] = 1;
 
+  cout << "rotation matrix " << endl;
   printmat(4, 4, matrix2);
 
   identity(4, viewingMatrix);
   translate(viewingMatrix, -eye[0], -eye[1], -eye[2]);
-
-  printmat(4,4, viewingMatrix);
-  multiplication(4,4,4, viewingMatrix, matrix2, resultMatrix);
+  multiplication(4,4,4, viewingMatrix, rotationMatrix, resultMatrix);
   copymatrix(4, 4, viewingMatrix, resultMatrix);
+  cout << "viewing matrix" << endl;
+  printmat(4,4,viewingMatrix);
 
+
+  multiplication(4,4,4, projectionMatrix, viewingMatrix, resultMatrix);
+  copymatrix(4,4, viewingMatrix, resultMatrix);
+  
+  cout << "Normalized Matrix" << endl;
   printmat(4, 4, viewingMatrix);
-
-  /**
-  // shear
-  a = ((width[0] + width[1]) / 2) / length[0];
-  b = ((height[0] + height[1]) / 2) / length[0];
-
-  cout << "a: " << a << " b: " << b << endl;
-  identity(4, matrix2); 
-  matrix2[2] = a;
-  matrix2[6] = b;
-
-  printmat(4, 4, matrix2); 
-
-  multiplication(4, 4, 4, viewingMatrix, matrix2, resultMatrix);
-  copymatrix(4, 4, viewingMatrix, resultMatrix);
-
-  // scale in x and y
-  identity(4, matrix2);
-  matrix2[0] = length[0] / ( (width[0] - width[1]) / 2);  // near / (right - left) / 2
-  matrix2[5] = length[0] / ( (height[0] - height[1]) / 2);  // near / (top - bottom) / 2
-
-  printmat(4, 4, matrix2);
-
-  multiplication(4, 4, 4, viewingMatrix, matrix2, resultMatrix);
-  copymatrix(4, 4, viewingMatrix, resultMatrix);
-
-  // scale in z
-  identity(4, matrix2);
-  matrix2[0] = 1 / length[1];
-  matrix2[5] = 1 / length[1];
-  matrix2[10] = 1 / length[1];
-
-  printmat(4, 4, matrix2);
-
-  multiplication(4, 4, 4, viewingMatrix, matrix2, resultMatrix);
-  copymatrix(4, 4, viewingMatrix, resultMatrix);
-
-  printmat(4, 4, viewingMatrix);
-  **/
-  
-  
-  matrix2[0] = ( 2 * near ) / ( right -  left);
-  matrix2[1] = 0;
-  matrix2[2] = ( right + left ) / ( right - left);
-  matrix2[3] = 0;
-  matrix2[4] = 0;
-  matrix2[5] = ( 2 * near ) / ( top - bottom );  
-  matrix2[6] = ( top + bottom ) / ( top - bottom );
-  matrix2[7] = 0;
-  matrix2[8] = 0;
-  matrix2[9] = 0;
-  matrix2[10] = ( -1 * ( far + near ) ) / ( far - near );
-  matrix2[11] =  ( -2 * far * near ) / ( far - near );
-  matrix2[12] = 0;
-  matrix2[13] = 0;
-  matrix2[14] = -1;
-  matrix2[15] = 0; 
-  
-  printmat(4,4, matrix2);
-  
-  multiplication(4, 4, 4, matrix2, viewingMatrix, resultMatrix);
-  copymatrix(4, 4, viewingMatrix, resultMatrix);
-  
-  printmat(4,4, viewingMatrix);
- 
 }
 
 void JLLoadIdentity() {
@@ -190,16 +157,18 @@ void JLTranslate(double x, double y, double z) {
   //printmat(4,4,modelMatrix);
 }
 
-void JLRotate(double angle, double xAxis, double yAxis, double zAxis) {
+void JLRotate(double angle, int xAxis, int yAxis, int zAxis) {
   double tempMatrix[16], resultMatrix[16];
   identity(4, tempMatrix);
+  
+  double newAngle = 3.14159265358979323846 / 180.0 * angle;
 
   if(xAxis)
-    rotate('x', angle, tempMatrix);
+    rotate('x', newAngle, tempMatrix);
   if(yAxis)
-    rotate('y', angle, tempMatrix);
+    rotate('y', newAngle, tempMatrix);
   if(zAxis)
-    rotate('z', angle, tempMatrix);
+    rotate('z', newAngle, tempMatrix);
 
   multiplication(4, 4, 4, modelMatrix, tempMatrix, resultMatrix);
   copymatrix(4, 4, modelMatrix, resultMatrix);
@@ -242,44 +211,62 @@ void JLBegin(type m) {
 
 void JLEnd() {
   
-  list <edge> ::iterator iterator;
+  list <vertex> ::iterator iterator;
 
   double v1[3],v2[3],v3[3];
   double AB[3], AC[3], coefficient[3]; 
   double d;
 
-  double quad1[3],quad2[3],quad3[3];
-  double AB2[3], AC2[3], coefficient2[3];
-  double d2;
-
   if(polygonType == triangle){
     
     int counter = 1;
-    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
+    for(iterator = globalPoints.begin(); iterator != globalPoints.end(); ++iterator) {
       if(counter == 1){
-        v1[0] = iterator->v1.x;
-        v1[1] = iterator->v1.y;
-        v1[2] = iterator->v1.z;
+        v1[0] = iterator->x;
+        v1[1] = iterator->y;
+        v1[2] = iterator->z;
       }
       else if(counter == 2){
-        v2[0] = iterator->v1.x;
-        v2[1] = iterator->v1.y;
-        v2[2] = iterator->v1.z;
+        v2[0] = iterator->x;
+        v2[1] = iterator->y;
+        v2[2] = iterator->z;
       }
       else{
-        v3[0] = iterator->v1.x;
-        v3[1] = iterator->v1.y;
-        v3[2] = iterator->v1.z;
+        v3[0] = iterator->x;
+        v3[1] = iterator->y;
+        v3[2] = iterator->z;
       }
 
       counter++;
     }
 
-    crossproduct(v1, v2, AB);
-    crossproduct(v1, v3, AC);
-    crossproduct(AB, AC, coefficient);
-
-    d = -(coefficient[0] * v1[0] + coefficient[1] * v1[1] + coefficient[2] * v1[2]);
+    double A[] = {v1[0], v1[1], 1, v2[0], v2[1], 1, v3[0], v3[1], 1};
+    double z[] = {v1[2], v2[2], v3[2]};
+    
+    cout << "A" << endl;
+    printmat(3,3, A);
+    
+    cout << "z values: " << endl;
+    printmat(3,1, z);
+    
+    double inv[9], aTran[9], result1[9], result2[9];
+    transpose(3,3,A , aTran);
+    
+    // transpost * A
+    multiplication(3,3,3, aTran, A, result1);
+    // inverse of (x^t * x)
+    inverse(3, result1, result2);
+    //
+    multiplication(3,3,3, result2, aTran, result1);
+    multiplication(3,3,1, result1, z, coefficient);
+    
+    //multiplication(3,3,1, inv, z, coefficient);
+    
+    cout << "inv" << endl;
+    printmat(3,1, inv);
+    
+    cout << "ddd" << endl;
+    printmat(3,1,coefficient);
 
     //clipping(polygon_tri);   
     lineDrawing(polygon_tri);
@@ -288,56 +275,60 @@ void JLEnd() {
   else {
 
     int counter = 1;
-    for(iterator = polygon_quad.begin(); iterator != polygon_quad.end(); ++iterator) {
-      cout << iterator->v1.x << " " << iterator->v1.y << " " << iterator->v1.x << endl;
+    for(iterator = globalPoints.begin(); iterator != globalPoints.end(); ++iterator) {
+      //cout << iterator->v1.x << " " << iterator->v1.y << " " << iterator->v1.z << endl;
+      //cout << iterator->v2.x << " " << iterator->v2.y << " " << iterator->v2.z << endl;
 
       if(counter == 1){
-        v1[0] = iterator->v1.x;
-        v1[1] = iterator->v1.y;
-        v1[2] = iterator->v1.z;
+        v1[0] = iterator->x;
+        v1[1] = iterator->y;
+        v1[2] = iterator->z;
 
-        quad1[0] = iterator->v1.x;
-        quad1[1] = iterator->v1.y;
-        quad1[2] = iterator->v1.z;
+        
       }
       else if(counter == 2){
-        v2[0] = iterator->v1.x;
-        v2[1] = iterator->v1.y;
-        v2[2] = iterator->v1.z;
+        v2[0] = iterator->x;
+        v2[1] = iterator->y;
+        v2[2] = iterator->z;
       }
 
       else if(counter == 3){
-        v3[0] = iterator->v1.x;
-        v3[1] = iterator->v1.y;
-        v3[2] = iterator->v1.z;
-
-        quad2[0] = iterator->v1.x;
-        quad2[1] = iterator->v1.y;
-        quad2[2] = iterator->v1.z;
+        v3[0] = iterator->x;
+        v3[1] = iterator->y;
+        v3[2] = iterator->z;
       }
-      else{
-        quad3[0] = iterator->v1.x;
-        quad3[1] = iterator->v1.y;
-        quad3[2] = iterator->v1.z;
-      }
-
-      // bottom triangle
-      crossproduct(v1, v2, AB);
-      crossproduct(v1, v3, AC);
-      crossproduct(AB, AC, coefficient);
-
-      d = -(coefficient[0] * v1[0] + coefficient[1] * v1[1] + coefficient[2] * v1[2]);
-
-      // top triangle
-      crossproduct(quad1, quad2, AB2);
-      crossproduct(quad1, quad3, AC2);
-      crossproduct(AB2, AC2, coefficient2);
-
-      d2 = -(coefficient2[0] * quad1[0] + coefficient2[1] * quad1[1] + coefficient[2] * quad1[2]);
-
       counter++;
     }
-
+    
+    
+    double A[] = {v1[0], v1[1], 1, v2[0], v2[1], 1, v3[0], v3[1], 1};
+    double z[] = {v1[2], v2[2], v3[2]};
+    
+    cout << "A" << endl;
+    printmat(3,3, A);
+    
+    cout << "z values: " << endl;
+    printmat(3,1, z);
+    
+    double inv[9], aTran[9], result1[9], result2[9];
+    transpose(3,3,A , aTran);
+    
+    // transpost * A
+    multiplication(3,3,3, aTran, A, result1);
+    // inverse of (x^t * x)
+    inverse(3, result1, result2);
+    //
+    multiplication(3,3,3, result2, aTran, result1);
+    multiplication(3,3,1, result1, z, coefficient);
+    
+    //multiplication(3,3,1, inv, z, coefficient);
+    
+    cout << "inv" << endl;
+    printmat(3,1, inv);
+    
+    cout << "ddd" << endl;
+    printmat(3,1,coefficient);
+    
     //clipping(polygon_quad);
     lineDrawing(polygon_quad);
     polygonFilling(polygon_quad);
@@ -348,26 +339,14 @@ void JLEnd() {
       if(tempTable[i][j] == 1){
         
         // find z buffer and compare
-        double z;
+        
         // case triangle 
-        if(polygonType == triangle){
-          z = (-coefficient[0] * i - coefficient[1] * j - d) / coefficient[2];
-        }
+        
+        double z = coefficient[0] * j + coefficient[1] * i + coefficient[2];
+        
         // case quad
-        else{
-          // find slope to find if it is upper triangle or lower triangle
-          double slope = (v1[1] - v3[1]) / (v1[0] - v3[0]);
-          double yIntercept = v1[1] - slope * v1[0];
-
-          double y = slope * j + yIntercept;
-
-          // case upper
-          if(i >= y)
-            z = (-coefficient2[0] * i - coefficient2[1] * j - d2) / coefficient2[2];
-          else
-            z = (-coefficient[0] * i - coefficient[1] * j - d) / coefficient[2];
-        }
-        //cout << z << endl;
+        
+        //cout << (double) z << endl;
         if(zbuffer[i][j] > z){
           //cout << "come" << endl;
           if(color == 'b')
@@ -387,18 +366,29 @@ void JLEnd() {
 }
 
 void JLVertex(double x, double y, double z) {
-  
+    
   double coord[] = {x, y, z, 1};
-  double final[4];
+  double finalv[4];
   double resultMatrix[16];
   multiplication(4, 4, 4, viewingMatrix, modelMatrix, resultMatrix);
-  multiplication(4, 4, 1, resultMatrix, coord, final);
+  multiplication(4, 4, 1, resultMatrix, coord, finalv);
 
-  printmat(4,1,final);
+  // Geometric transform
+  double globalCoord[4];
+  multiplication(4,4,4, rotationMatrix, modelMatrix, resultMatrix);
+  multiplication(4,4,1, resultMatrix, coord, globalCoord);
+  vertex global = {globalCoord[0], globalCoord[1], globalCoord[2]};
+  globalPoints.push_back(global);
+  
+  cout << "globalCoord" << endl;
+  printmat(4,1,globalCoord);
+  //printmat(4,1,finalv);
+  
+  
   vertex v;
-  v.x = final[0];
-  v.y = final[1]; 
-  v.z = final[2]; 
+  v.x = finalv[0];
+  v.y = finalv[1]; 
+  v.z = finalv[2]; 
   cout << "vertex: " << v.x << " " << v.y << " " << v.z << endl;
     
   switch(polygonType) {
@@ -935,50 +925,27 @@ void polygonFilling(list <edge>& polygon){
   }
 }
 
-/*void findZ(list <edge> & polygon) {
-  double v1[3],v2[3],v3[3];
-  double AB[3], AC[3], coefficient[3]; 
-  double d; 
-
-  list <edge> ::iterator iterator;
-  if(polygonType) {
-    int counter = 1;
-    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
-      if(counter == 1){
-        v1[0] = iterator->v1.x;
-        v1[1] = iterator->v1.y;
-        v1[2] = iterator->v1.z;
-      }
-      else if(counter == 2){
-        v2[0] = iterator->v1.x;
-        v2[1] = iterator->v1.y;
-        v2[2] = iterator->v1.z;
-      }
-      else{
-        v3[0] = iterator->v1.x;
-        v3[1] = iterator->v1.y;
-        v3[2] = iterator->v1.z;
-      }
-
-      counter++;
-    }
-
-    crossproduct(v1, v2, AB);
-    crossproduct(v1, v3, AC);
-    crossproduct(AB, AC, coefficient);
-
-    d = -(coefficient[0] * v1[0] + coefficient[1] * v1[1] + coefficient[2] * v1[2]);
-
-
-
-
-
-  }
-  else{
-    for(iterator = polygon_quad.begin(); iterator != polygon_quad.end(); ++iterator) {
-    
-    }
-  }
-}*/
-
+void rotate(double * matrix, double angle, double x, double y, double z) {
+ 
+  double theta = 3.14159265358979323846 / 180.0 * angle;
+  
+  matrix[0] = x * x * (1 - cos(theta)) + cos(theta);
+  matrix[1] = x * y * (1 - cos(theta)) - z * sin(theta);
+  matrix[2] = x * z * (1 - cos(theta)) + y * sin(theta);
+  matrix[3] = 0; 
+  matrix[4] = y * x * (1 - cos(theta)) + z * sin(theta); 
+  matrix[5] = y * y * (1 - cos(theta)) + cos(theta);
+  matrix[6] = y * z * (1 - cos(theta)) - x * sin(theta);
+  matrix[7] = 0;
+  matrix[8] = x * z * (1 - cos(theta)) - y * sin(theta);
+  matrix[9] = y * z * (1 - cos(theta)) + x * sin(theta);
+  matrix[10] = z * z * (1 -cos(theta)) + cos(theta);
+  matrix[11] = 0;
+  matrix[12] = 0;
+  matrix[13] = 0;
+  matrix[14] = 0;
+  matrix[15] = 1;
+  
+  
+}
 

@@ -11,27 +11,30 @@ int main() {
   viewNormalization(eye, center, up, 10, -10, 10, -10, 1, 10);
   JLLoadIdentity();
   
-  JLTranslate(2,0,0);
-  //JLScale(2,2,2);
+  
+  //JLTranslate(0,0,2);
+  //JLScale(0.5,0.5,0.5);
   //JLRotate(30, 0, 1,0 );
   //JLScale(0.1, 0.1, 0.1);
-  JLBegin(quad);
+  /*JLBegin(quad);
     JLVertex(-1,-1,0);
     JLVertex(1,-1,0);
     JLVertex(1,1,0);
     JLVertex(-1,1,0);
-  JLEnd();
+  JLEnd();*/
   
-  /*JLColor('w');
-  //JLPushMatrix();
-    JLTranslate(0,0,-1);
+  JLColor('w');
+  JLPushMatrix();
+    JLTranslate(0,0,1);
     JLScale(1,2,0);
+    JLRotate(45, 0, 1, 0);
     JLBegin(triangle);
       JLVertex(-1, 0, 0);
       JLVertex(1, 0, 0);
       JLVertex(0, 1, 0);
-    JLEnd();*/
-  //JLPopMatrix();
+    JLEnd();
+  JLPopMatrix();
+
   /*
   //JLTranslate(0,0, 0);
   JLColor('w');
