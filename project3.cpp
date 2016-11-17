@@ -1,7 +1,8 @@
-#include "function.h"
+#include "shapes.h"
+//#include <pnm.h>
 
 int main() {
-  double eye[] = {0, 0, 1};
+  double eye[] = {-2, 2, 10};
   double center[] = {0, 0, 0};
   double up[] = {0, 1, 0};
   double width[] = {300, -300};   // right, left
@@ -12,39 +13,9 @@ int main() {
   JLLoadIdentity();
   
   
-  //JLTranslate(0,0,2);
-  //JLScale(0.5,0.5,0.5);
-  //JLRotate(30, 0, 1,0 );
-  //JLScale(0.1, 0.1, 0.1);
-  /*JLBegin(quad);
-    JLVertex(-1,-1,0);
-    JLVertex(1,-1,0);
-    JLVertex(1,1,0);
-    JLVertex(-1,1,0);
-  JLEnd();*/
-  
-  JLColor('w');
-  JLPushMatrix();
-    JLTranslate(0,0,1);
-    JLScale(1,2,0);
-    JLRotate(45, 0, 1, 0);
-    JLBegin(triangle);
-      JLVertex(-1, 0, 0);
-      JLVertex(1, 0, 0);
-      JLVertex(0, 1, 0);
-    JLEnd();
-  JLPopMatrix();
+  drawboxWithEave();
 
-  /*
-  //JLTranslate(0,0, 0);
-  JLColor('w');
-  JLBegin(triangle);
-    JLVertex(-1, 0, 0);
-    JLVertex(1, 0, 0);
-    JLVertex(0, 1, 0);
-  JLEnd();*/
-
-  //printFinal();
+  printFinal();
   
   return 0;
 }

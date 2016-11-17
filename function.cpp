@@ -33,6 +33,7 @@ double viewingMatrix[16];
 double rotationMatrix[16];
 double modelMatrix[16]; 
 double stack[32][16];
+double rotateMatrixStack[32][16];
 
 type polygonType;
 int stackCounter;
@@ -88,11 +89,7 @@ void viewNormalization(double * eye, double * center, double * up,
   w[1] = eye[1] - center[1];
   w[2] = eye[2] - center[2];
 
-  printmat(3,1,w);
-
   normalize(w, 3);
-
-  printmat(3,1,w);
 
   crossproduct(up, w, u);
   
@@ -120,22 +117,19 @@ void viewNormalization(double * eye, double * center, double * up,
   rotationMatrix[14] = 0;
   rotationMatrix[15] = 1;
 
-  cout << "rotation matrix " << endl;
-  printmat(4, 4, matrix2);
+  
 
   identity(4, viewingMatrix);
   translate(viewingMatrix, -eye[0], -eye[1], -eye[2]);
   multiplication(4,4,4, viewingMatrix, rotationMatrix, resultMatrix);
   copymatrix(4, 4, viewingMatrix, resultMatrix);
-  cout << "viewing matrix" << endl;
-  printmat(4,4,viewingMatrix);
+  
 
 
   multiplication(4,4,4, projectionMatrix, viewingMatrix, resultMatrix);
   copymatrix(4,4, viewingMatrix, resultMatrix);
   
-  cout << "Normalized Matrix" << endl;
-  printmat(4, 4, viewingMatrix);
+  
 }
 
 void JLLoadIdentity() {
@@ -153,6 +147,8 @@ void JLTranslate(double x, double y, double z) {
   multiplication(4,4,4, modelMatrix, tempMatrix, resultMatrix);
   copymatrix(4, 4, modelMatrix, resultMatrix);
 
+  multiplication(4,4,4, tempMatrix, rotationMatrix, resultMatrix);
+  copymatrix(4,4, rotationMatrix, resultMatrix);
   //cout << "model: " << endl; 
   //printmat(4,4,modelMatrix);
 }
@@ -170,8 +166,14 @@ void JLRotate(double angle, int xAxis, int yAxis, int zAxis) {
   if(zAxis)
     rotate('z', newAngle, tempMatrix);
 
+  cout << "rotate" << endl;
+  printmat(4,4, tempMatrix);
+
   multiplication(4, 4, 4, modelMatrix, tempMatrix, resultMatrix);
   copymatrix(4, 4, modelMatrix, resultMatrix);
+
+  multiplication(4,4,4, tempMatrix, rotationMatrix, resultMatrix);
+  copymatrix(4,4, rotationMatrix, resultMatrix);
 }
 
 void JLScale(double xScale, double yScale, double zScale) {
@@ -184,20 +186,29 @@ void JLScale(double xScale, double yScale, double zScale) {
 
   multiplication(4, 4, 4, modelMatrix, tempMatrix, resultMatrix);
   copymatrix(4, 4, modelMatrix, resultMatrix);
+
+  multiplication(4,4,4, tempMatrix, rotationMatrix, resultMatrix);
+  copymatrix(4,4, rotationMatrix, resultMatrix);
 }
 
 void JLPushMatrix() {
-  for(int i= 0; i < 4; i++)
-    for (int j = 0; j< 4; j++)
+  for(int i= 0; i < 4; i++){
+    for (int j = 0; j< 4; j++){
       stack[stackCounter][i*4+j] = modelMatrix[i*4+j];
+      rotateMatrixStack[stackCounter][i*4+j] = rotationMatrix[i*4+j];
+    }
+  }
   
   stackCounter++;
 }
 
 void JLPopMatrix() {
-  for(int i= 0; i < 4; i++)
-    for (int j = 0; j< 4; j++)
+  for(int i= 0; i < 4; i++){
+    for (int j = 0; j< 4; j++){
       modelMatrix[i*4+j] = stack[stackCounter - 1][i*4+j];
+      rotationMatrix[i*4+j] = rotateMatrixStack[stackCounter-1][i*4+j];
+    }
+  }
   stackCounter--;
 }
 
@@ -341,8 +352,8 @@ void JLEnd() {
         // find z buffer and compare
         
         // case triangle 
-        
-        double z = coefficient[0] * j + coefficient[1] * i + coefficient[2];
+        //cout << "j(x): " << j << "i(y): " << i << endl;
+        double z = coefficient[0] * (j - 300) / 300 + coefficient[1] * (i - 300) / 300 + coefficient[2];
         
         // case quad
         
@@ -363,20 +374,29 @@ void JLEnd() {
     polygon_tri.clear();
   else
     polygon_quad.clear();
+
+  globalPoints.clear();
 }
 
 void JLVertex(double x, double y, double z) {
     
+
+  cout << "modelMatrix" << endl;
+  printmat(4,4, modelMatrix);  
   double coord[] = {x, y, z, 1};
   double finalv[4];
   double resultMatrix[16];
   multiplication(4, 4, 4, viewingMatrix, modelMatrix, resultMatrix);
   multiplication(4, 4, 1, resultMatrix, coord, finalv);
 
+  
   // Geometric transform
   double globalCoord[4];
-  multiplication(4,4,4, rotationMatrix, modelMatrix, resultMatrix);
-  multiplication(4,4,1, resultMatrix, coord, globalCoord);
+  cout << "printing rotationMatrix" << endl;
+  printmat(4,4,rotationMatrix);
+  //multiplication(4,4,4, modelMatrix, rotationMatrix, resultMatrix);
+  multiplication(4,4,1, rotationMatrix, coord, globalCoord);
+  //multiplication(4,4,1, tetete, temp, globalCoord);
   vertex global = {globalCoord[0], globalCoord[1], globalCoord[2]};
   globalPoints.push_back(global);
   
