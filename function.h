@@ -18,4 +18,6 @@ void JLScale(double xScale, double yScale, double zScale);
 void JLBegin(type m);
 void JLEnd();
 void JLVertex(double x, double y, double z);
-void printMatrix();
+void JLColor(char c);
+void printFinal();
+

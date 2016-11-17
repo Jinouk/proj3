@@ -1,6 +1,8 @@
 #include "function.h"
 #include <list> 
 
+const int window_size = 601;
+
 typedef struct vectex {
   double x;
   double y;
@@ -12,11 +14,10 @@ typedef struct edge {
   vertex v2;
 } edge;
 
-list < list <edge> > triangle_strip;
-list < list <edge> > quad_strip;
-
 list < edge > polygon_tri; 
 list < edge > polygon_quad;
+
+char color = 'b';
 
 int previous_vertex;
 int counter;
@@ -31,22 +32,28 @@ double stack[32][16];
 type polygonType;
 int stackCounter;
 
-int finalPixel[600][600];
-int tempTable[600][600];
-double zbuffer[600][600];
+int finalPixel[window_size][window_size];
+int tempTable[window_size][window_size];
+double zbuffer[window_size][window_size];
 
 void clipping(list <edge>& polygon);
 void lineDrawing(list <edge>& polygon);
-void polygonFilling(list <edge>& polygon); 
+void polygonFilling(list <edge>& polygon);
+void findZ(list <edge> & polygon); 
 void normalize(double * vector, int count);
 void translate(double * matrix, double x, double y, double z);
-
 
 
 void viewNormalization(double * eye, double * center, double * up, 
                        double right, double left, double top, double bottom,
                        double near, double far) {
   
+  for ( int i = 0; i < window_size; i++){
+    for ( int j = 0; j < window_size; j++){
+      zbuffer[i][j] = 3.0;
+    }
+  }
+
   double w[3], u[3], v[3];
   double matrix2[16], resultMatrix[16];
   double a, b; 
@@ -178,6 +185,9 @@ void JLTranslate(double x, double y, double z) {
 
   multiplication(4,4,4, modelMatrix, tempMatrix, resultMatrix);
   copymatrix(4, 4, modelMatrix, resultMatrix);
+
+  //cout << "model: " << endl; 
+  //printmat(4,4,modelMatrix);
 }
 
 void JLRotate(double angle, double xAxis, double yAxis, double zAxis) {
@@ -222,6 +232,10 @@ void JLPopMatrix() {
   stackCounter--;
 }
 
+void JLColor(char c) {
+  color = c;
+}
+
 void JLBegin(type m) {
   polygonType = m;
 }
@@ -230,55 +244,146 @@ void JLEnd() {
   
   list <edge> ::iterator iterator;
 
+  double v1[3],v2[3],v3[3];
+  double AB[3], AC[3], coefficient[3]; 
+  double d;
+
+  double quad1[3],quad2[3],quad3[3];
+  double AB2[3], AC2[3], coefficient2[3];
+  double d2;
+
   if(polygonType == triangle){
-    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
-      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << " } " <<endl; 
-    }
-
-    clipping(polygon_tri);
-
-    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
-      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << "} " << endl; 
-    }
     
+    int counter = 1;
+    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
+      if(counter == 1){
+        v1[0] = iterator->v1.x;
+        v1[1] = iterator->v1.y;
+        v1[2] = iterator->v1.z;
+      }
+      else if(counter == 2){
+        v2[0] = iterator->v1.x;
+        v2[1] = iterator->v1.y;
+        v2[2] = iterator->v1.z;
+      }
+      else{
+        v3[0] = iterator->v1.x;
+        v3[1] = iterator->v1.y;
+        v3[2] = iterator->v1.z;
+      }
+
+      counter++;
+    }
+
+    crossproduct(v1, v2, AB);
+    crossproduct(v1, v3, AC);
+    crossproduct(AB, AC, coefficient);
+
+    d = -(coefficient[0] * v1[0] + coefficient[1] * v1[1] + coefficient[2] * v1[2]);
+
+    //clipping(polygon_tri);   
     lineDrawing(polygon_tri);
-    //polygonFilling(polygon_tri);
+    polygonFilling(polygon_tri);
   }
-  
-  
   else {
+
+    int counter = 1;
     for(iterator = polygon_quad.begin(); iterator != polygon_quad.end(); ++iterator) {
-      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << " } " <<endl; 
+      cout << iterator->v1.x << " " << iterator->v1.y << " " << iterator->v1.x << endl;
+
+      if(counter == 1){
+        v1[0] = iterator->v1.x;
+        v1[1] = iterator->v1.y;
+        v1[2] = iterator->v1.z;
+
+        quad1[0] = iterator->v1.x;
+        quad1[1] = iterator->v1.y;
+        quad1[2] = iterator->v1.z;
+      }
+      else if(counter == 2){
+        v2[0] = iterator->v1.x;
+        v2[1] = iterator->v1.y;
+        v2[2] = iterator->v1.z;
+      }
+
+      else if(counter == 3){
+        v3[0] = iterator->v1.x;
+        v3[1] = iterator->v1.y;
+        v3[2] = iterator->v1.z;
+
+        quad2[0] = iterator->v1.x;
+        quad2[1] = iterator->v1.y;
+        quad2[2] = iterator->v1.z;
+      }
+      else{
+        quad3[0] = iterator->v1.x;
+        quad3[1] = iterator->v1.y;
+        quad3[2] = iterator->v1.z;
+      }
+
+      // bottom triangle
+      crossproduct(v1, v2, AB);
+      crossproduct(v1, v3, AC);
+      crossproduct(AB, AC, coefficient);
+
+      d = -(coefficient[0] * v1[0] + coefficient[1] * v1[1] + coefficient[2] * v1[2]);
+
+      // top triangle
+      crossproduct(quad1, quad2, AB2);
+      crossproduct(quad1, quad3, AC2);
+      crossproduct(AB2, AC2, coefficient2);
+
+      d2 = -(coefficient2[0] * quad1[0] + coefficient2[1] * quad1[1] + coefficient[2] * quad1[2]);
+
+      counter++;
     }
 
-    clipping(polygon_quad);
-
-    for(iterator = polygon_quad.begin(); iterator != polygon_quad.end(); ++iterator) {
-      cout << "edge: \nv1 = { x: " << iterator->v1.x << ", y: " << iterator->v1.y << ", z: " << iterator->v1.z << "}, v2 = { x: " << iterator->v2.x << ", y: " << iterator->v2.y << ", z: " << iterator->v2.z << "} " << endl; 
-    }
-    
+    //clipping(polygon_quad);
     lineDrawing(polygon_quad);
     polygonFilling(polygon_quad);
   }
   
-  for(int i = 599; i >= 0; i--){
-    for(int j = 0; j < 600; j++){
+  for(int i = window_size -1 ; i >= 0; i--){
+    for(int j = 0; j < window_size; j++){
       if(tempTable[i][j] == 1){
-        finalPixel[i][j] = 1;
-        tempTable[i][j] = 0;
-        cout << "@";
-      }
-      else
-        cout << ".";
-    }
-    cout << endl;
-  }
+        
+        // find z buffer and compare
+        double z;
+        // case triangle 
+        if(polygonType == triangle){
+          z = (-coefficient[0] * i - coefficient[1] * j - d) / coefficient[2];
+        }
+        // case quad
+        else{
+          // find slope to find if it is upper triangle or lower triangle
+          double slope = (v1[1] - v3[1]) / (v1[0] - v3[0]);
+          double yIntercept = v1[1] - slope * v1[0];
 
-  triangle_strip.push_back(polygon_tri);
-  polygon_tri.clear();
-  
-  cout << triangle_strip.front().front().v1.x << endl;
-  
+          double y = slope * j + yIntercept;
+
+          // case upper
+          if(i >= y)
+            z = (-coefficient2[0] * i - coefficient2[1] * j - d2) / coefficient2[2];
+          else
+            z = (-coefficient[0] * i - coefficient[1] * j - d) / coefficient[2];
+        }
+        //cout << z << endl;
+        if(zbuffer[i][j] > z){
+          //cout << "come" << endl;
+          if(color == 'b')
+            finalPixel[i][j] = 1;
+          else
+            finalPixel[i][j] = 2;
+          zbuffer[i][j] = z;
+        }
+        tempTable[i][j] = 0;
+      }
+    }
+  }
+  if(polygonType == triangle)
+    polygon_tri.clear();
+  else
+    polygon_quad.clear();
 }
 
 void JLVertex(double x, double y, double z) {
@@ -290,13 +395,12 @@ void JLVertex(double x, double y, double z) {
   multiplication(4, 4, 1, resultMatrix, coord, final);
 
   printmat(4,1,final);
-  printf("x: %f, y: %f, z: %f\n", final[0], final[1], final[2]);
-
   vertex v;
   v.x = final[0];
   v.y = final[1]; 
   v.z = final[2]; 
-   
+  cout << "vertex: " << v.x << " " << v.y << " " << v.z << endl;
+    
   switch(polygonType) {
     case triangle:
       counter++;
@@ -309,7 +413,7 @@ void JLVertex(double x, double y, double z) {
         edge e = {previous, v};
         polygon_tri.push_back(e);
         
-        cout << "edge v1 = { " << previous.x << ", " << previous.y << ", " << previous.z << "}" << endl;
+        //cout << "edge v1 = { " << previous.x << ", " << previous.y << ", " << previous.z << "}" << endl;
         previous = v;
       }
       
@@ -334,7 +438,7 @@ void JLVertex(double x, double y, double z) {
         edge e = {previous, v};
         polygon_quad.push_back(e);
         
-        cout << "edge v1 = { " << previous.x << ", " << previous.y << ", " << previous.z << "}" << endl;
+        //cout << "edge v1 = { " << previous.x << ", " << previous.y << ", " << previous.z << "}" << endl;
         previous = v;
       }
       
@@ -352,8 +456,20 @@ void JLVertex(double x, double y, double z) {
   }
 }
 
-void printMatrix() {
-  printmat(4, 4, modelMatrix);
+void printFinal() {
+  for(int i = window_size - 1; i >= 0; i--){
+    for (int j = 0; j < window_size; j++){
+      if(finalPixel[i][j] == 1)
+        cout << "@";
+      else if(finalPixel[i][j] == 2)
+        cout << " ";
+      else
+        cout << ".";
+    }
+    cout << endl;
+  }
+
+  cout << "done" << endl;
 }
 // Helper Method
 void translate(double * matrix, double x, double y, double z) {
@@ -385,6 +501,9 @@ void normalize(double * vector, int count) {
 void clipping(list <edge>& polygon) {
   
   list <edge>::iterator iterator;
+  double verticestri[3][6];
+  double verticesquad[4][6];
+  int counter = 0;
 
   for(iterator = polygon.begin(); iterator != polygon.end(); ++iterator) {
     
@@ -528,7 +647,136 @@ void clipping(list <edge>& polygon) {
     else {
       // do nothing?
     } 
+    if(polygonType == triangle){
+      verticestri[counter][0] = point1x;
+      verticestri[counter][1] = point1y;
+      verticestri[counter][2] = point1z;
+      verticestri[counter][3] = point2x;
+      verticestri[counter][4] = point2y;
+      verticestri[counter][5] = point2z;
+    }
+    else {
+      verticesquad[counter][0] = point1x;
+      verticesquad[counter][1] = point1y;
+      verticesquad[counter][2] = point1z;
+      verticesquad[counter][3] = point2x;
+      verticesquad[counter][4] = point2y;
+      verticesquad[counter][5] = point2z;
+    }
+    counter++;
   }
+
+
+  counter = 0;
+  /*for(iterator = polygon.begin(); iterator != polygon.end(); ++iterator) {
+    double point1x = iterator->v1.x;
+    double point1y = iterator->v1.y;
+    double point2x = iterator->v2.x;
+    double point2y = iterator->v2.y;
+    
+
+    if(polygonType == triangle) {
+      // both vertices outside of the border
+      if((point1x > 1 && point2x > 1) || (point1x < -1 && point2x > -1) ||
+         (point1y > 1 && point2y > 1) || (point1y < -1 && point2y < -1)) {
+        // if first edge is outside
+        if(counter == 0){
+          vertex v1 = {verticestri[2][3], verticestri[2][4], verticestri[2][5]};
+          vertex v2 = {verticestri[1][0], verticestri[1][1], verticestri[1][2]};
+
+          iterator->v1 = v1;
+          iterator->v2 = v2;
+        }
+        else if(counter == 1) {
+          vertex v1 = {verticestri[0][3], verticestri[0][4], verticestri[0][5]};
+          vertex v2 = {verticestri[2][0], verticestri[2][1], verticestri[2][2]};
+
+          iterator->v1 = v1;
+          iterator->v2 = v2;
+        }
+        else {
+          vertex v1 = {verticestri[1][3], verticestri[1][4], verticestri[1][5]};
+          vertex v2 = {verticestri[0][0], verticestri[0][1], verticestri[0][2]};
+
+          iterator->v1 = v1;
+          iterator->v2 = v2;
+        }
+      }
+      // vertices ended up into a same coordinate
+      else{
+        if(point1x == point2x && point1y == point2y) {
+          if(counter == 0){
+            vertex v = {verticestri[2][3], verticestri[2][4], verticestri[2][5]};
+            iterator->v1 = v;
+          }
+          else if(counter == 1) {
+            vertex v = {verticestri[0][3], verticestri[0][4], verticestri[0][5]};
+            iterator->v1 = v;
+          }
+          else{
+            vertex v = {verticestri[1][3], verticestri[1][4], verticestri[1][5]};
+            iterator->v1 = v;
+          }
+        }
+      } 
+    }
+    else {
+      // both vertices outside of the border
+      if((point1x > 1 && point2x > 1) || (point1x < -1 && point2x > -1) ||
+         (point1y > 1 && point2y > 1) || (point1y < -1 && point2y < -1)) {
+        // if first edge is outside
+        if(counter == 0){
+          vertex v1 = {verticesquad[3][3], verticesquad[3][4], verticesquad[3][5]};
+          vertex v2 = {verticesquad[1][0], verticesquad[1][1], verticesquad[1][2]};
+
+          iterator->v1 = v1;
+          iterator->v2 = v2;
+        }
+        else if(counter == 1) {
+          vertex v1 = {verticesquad[0][3], verticesquad[0][4], verticesquad[0][5]};
+          vertex v2 = {verticesquad[2][0], verticesquad[2][1], verticesquad[2][3]};
+
+          iterator->v1 = v1;
+          iterator->v2 = v2;
+        }
+        else if(counter == 2){
+          vertex v1 = {verticesquad[1][3], verticesquad[1][4], verticesquad[1][5]};
+          vertex v2 = {verticesquad[3][0], verticesquad[3][1], verticesquad[3][2]};
+
+          iterator->v1 = v1;
+          iterator->v2 = v2;
+        }
+        else {
+          vertex v1 = {verticesquad[2][3], verticesquad[2][4], verticesquad[2][5]};
+          vertex v2 = {verticesquad[0][0], verticesquad[0][1], verticesquad[0][2]};
+
+          iterator->v1 = v1;
+          iterator->v2 = v2;
+        }
+      }
+      else{
+        if(point1x == point2x && point1y == point2y) {
+          if(counter == 0){
+            vertex v = {verticesquad[3][3], verticesquad[3][4], verticesquad[3][5]};
+            iterator->v1 = v;
+          }
+          else if(counter == 1) {
+            vertex v = {verticesquad[0][3], verticesquad[0][4], verticesquad[0][5]};
+            iterator->v1 = v;
+          }
+          else if(counter == 2){
+            vertex v = {verticesquad[1][3], verticesquad[1][4], verticesquad[1][5]};
+            iterator->v1 = v;
+          }
+          else {
+            vertex v = {verticesquad[2][3], verticesquad[2][4], verticesquad[2][5]};
+            iterator->v1 = v;
+          }
+        }
+      }
+    }
+    counter++;
+  }*/
 }
 
 void lineDrawing(list <edge>& polygon) {
@@ -550,7 +798,6 @@ void lineDrawing(list <edge>& polygon) {
     
     if( !(point1x > 300 && point2x > 300) && !(point1x < -300 && point2x < -300) &&
         !(point1y > 300 && point2y > 300) && !(point1y < -300 && point2y < -300)){
-      cout << " yinter: " << yIntercept << " slope: " << slope << endl;
       // check through x
       // horizontal check
       if(start != end){
@@ -558,18 +805,18 @@ void lineDrawing(list <edge>& polygon) {
           deltaX = 1;
         else
           deltaX = -1;
-        cout << deltaX << endl;
-        cout << "Start: " << start << " End: " << end <<endl;
+        //cout << deltaX << endl;
+        //cout << "Start: " << start << " End: " << end <<endl;
         while(start != end) {
           //cout << "start: " << deltaX << " end: " << end << endl;
           int yPixel = slope * start + yIntercept;
           
-          tempTable[yPixel + 299][start + 299] = 1;
+          tempTable[yPixel + 300][start + 300] = 1;
           
-          cout << "x: " << start + 299 << " y: " << yPixel << endl;
+          //cout << "x: " << start + 300 << " y: " << yPixel << endl;
           start += deltaX;
         }
-        /*
+        
         int deltaY;
         start = round(point1y);
         end = round(point2y);
@@ -579,22 +826,22 @@ void lineDrawing(list <edge>& polygon) {
             deltaY = 1;
           else
             deltaY = -1;
-          cout << "start: " << start << " end: " << end << endl;
-          cout << "deltaY: " << deltaY << " yinter: " << yIntercept << " slope: " << slope << endl;
+          //cout << "start: " << start << " end: " << end << endl;
+          //cout << "deltaY: " << deltaY << " yinter: " << yIntercept << " slope: " << slope << endl;
           while(start != end) {
             int xPixel = (start - yIntercept) / slope;
-            cout << "x: " << xPixel << endl;
+            //cout << "x: " << xPixel << endl;
             
-            tempTable[start + 299][xPixel + 299] = 1;
+            tempTable[start + 300][xPixel + 300] = 1;
             start += deltaY; 
           }
-        }  */
+        }  
       }
       
       
       // vertical check 
       else {
-      cout << " yinter: " << yIntercept << " slope: " << slope << endl;
+      //cout << " yinter: " << yIntercept << " slope: " << slope << endl;
         start = round(point1y);
         end = round(point2y);
         
@@ -606,17 +853,17 @@ void lineDrawing(list <edge>& polygon) {
         while(start != end) {
           //cout << "start: " << deltaX << " end: " << end << endl;
           
-          tempTable[start + 299][(int) point1x + 299] = 1;
+          tempTable[start + 300][(int) point1x + 300] = 1;
           start += deltaX;
         }  
-      }      
+      }
+          
     }
   }
   
 }
 
 void polygonFilling(list <edge>& polygon){
-  
   
   int numPoints = 0;
   double maxY = -1, minY = 1;
@@ -637,7 +884,7 @@ void polygonFilling(list <edge>& polygon){
   minY = minY * 300 + 299;
   maxY = maxY * 300 + 299;
   
-  cout << minY << "               " << maxY << endl;
+  //cout << minY << "               " << maxY << endl;
   
   if(maxY > 600) 
     maxY = 599;
@@ -652,12 +899,12 @@ void polygonFilling(list <edge>& polygon){
         points.push_back(newPoint);
         numPoints++;
         
-        cout << "new: " << newPoint.x << " " << newPoint.y << endl;
+        //cout << "new: " << newPoint.x << " " << newPoint.y << endl;
       }
     }
     
-    cout << "num point: " << numPoints << endl;
-    if(numPoints == 1){
+    //cout << "num point: " << numPoints << endl;
+    /*if(numPoints == 1){
       cout << "number okay? " << endl;
       if(rightOverFlow == 1){
         cout << "front: " << points.front().x << " back: " << points.back().x << endl;
@@ -676,16 +923,62 @@ void polygonFilling(list <edge>& polygon){
       }     
       
     }
+    */
     
     edge e = { points.front(), points.back() };
     points.clear();
     
     for(int i = e.v1.x; i <= e.v2.x; i++){
-
       tempTable[y][i] = 1;
     }
     numPoints = 0;
   }
 }
+
+/*void findZ(list <edge> & polygon) {
+  double v1[3],v2[3],v3[3];
+  double AB[3], AC[3], coefficient[3]; 
+  double d; 
+
+  list <edge> ::iterator iterator;
+  if(polygonType) {
+    int counter = 1;
+    for(iterator = polygon_tri.begin(); iterator != polygon_tri.end(); ++iterator) {
+      if(counter == 1){
+        v1[0] = iterator->v1.x;
+        v1[1] = iterator->v1.y;
+        v1[2] = iterator->v1.z;
+      }
+      else if(counter == 2){
+        v2[0] = iterator->v1.x;
+        v2[1] = iterator->v1.y;
+        v2[2] = iterator->v1.z;
+      }
+      else{
+        v3[0] = iterator->v1.x;
+        v3[1] = iterator->v1.y;
+        v3[2] = iterator->v1.z;
+      }
+
+      counter++;
+    }
+
+    crossproduct(v1, v2, AB);
+    crossproduct(v1, v3, AC);
+    crossproduct(AB, AC, coefficient);
+
+    d = -(coefficient[0] * v1[0] + coefficient[1] * v1[1] + coefficient[2] * v1[2]);
+
+
+
+
+
+  }
+  else{
+    for(iterator = polygon_quad.begin(); iterator != polygon_quad.end(); ++iterator) {
+    
+    }
+  }
+}*/
 
 
