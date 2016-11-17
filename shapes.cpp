@@ -129,68 +129,72 @@ void drawRingPart(double radiusX, double radiusY, double width, double thickness
   double radian;
   
   JLPushMatrix();
-    // Front circle
-   
-    JLBegin(triangle);
-
-      for(int i = 0; i < vertexCount; i++) {
-        if (theta == 360) {
-          theta = 0; 
-        }
-        radian =  theta * PI / 180.0;
-
-        // Inner Circle
-        innerX = radiusX * cos(radian);
-        innerY = radiusY * sin(radian);
-      
-        // Outer Circle
-        outerX = (radiusX + width) * cos(radian);
-        outerY = (radiusY + width) * sin(radian);
-        
-                
-        frontInnerCord[i][0] = innerX;
-        frontInnerCord[i][1] = innerY;
-        
-        frontOuterCord[i][0] = outerX;
-        frontOuterCord[i][1] = outerY;
-        
-        JLVertex(innerX, innerY, thickness/2.0); 
-        JLVertex(outerX, outerY, thickness/2.0); 
-        theta++;
+    for(int i = 0; i < vertexCount; i++) {
+      if (theta == 360) {
+        theta = 0; 
       }
-    JLEnd();
+      radian =  theta * PI / 180.0;
+
+      // Inner Circle
+      innerX = radiusX * cos(radian);
+      innerY = radiusY * sin(radian);
+    
+      // Outer Circle
+      outerX = (radiusX + width) * cos(radian);
+      outerY = (radiusY + width) * sin(radian);
+      
+              
+      frontInnerCord[i][0] = innerX;
+      frontInnerCord[i][1] = innerY;
+      
+      frontOuterCord[i][0] = outerX;
+      frontOuterCord[i][1] = outerY;
+
+      backInnerCord[i][0] = innerX;
+      backInnerCord[i][1] = innerY;
+      
+      backOuterCord[i][0] = outerX;
+      backOuterCord[i][1] = outerY;
+      
+      theta++;
+    }
+    
     
     theta = start;
-    // Back circle
-   
-    JLBegin(triangle);
-      
-      for(int i = 0; i < vertexCount; i++) {
-        if (theta == 360) {
-          theta = 0;
-        }
-        radian =  theta * PI / 180.0;
 
-        // Inner Circle
-        innerX = radiusX * cos(radian);
-        innerY = radiusY * sin(radian);
-      
-        // Outer Circle
-        outerX = (radiusX + width) * cos(radian);
-        outerY = (radiusY + width) * sin(radian);
-        
-                
-        backInnerCord[i][0] = innerX;
-        backInnerCord[i][1] = innerY;
-        
-        backOuterCord[i][0] = outerX;
-        backOuterCord[i][1] = outerY;
-        
-        JLVertex(innerX, innerY, -thickness/2.0); 
-        JLVertex(outerX, outerY, -thickness/2.0); 
-        theta++;
+    
+    for(int i = 0; i < vertexCount-1; i++) {
+      if (theta == 360) {
+        theta = 0;
       }
-    JLEnd();
+      // front           
+      JLBegin(triangle);
+        JLVertex(frontInnerCord[i][0], frontInnerCord[i][1], -thickness/2.0); 
+        JLVertex(frontOuterCord[i][0], frontOuterCord[i][1], -thickness/2.0);
+        JLVertex(frontOuterCord[i+1][0], frontOuterCord[i+1][1], -thickness/2.0);
+      JLEnd();
+
+      JLBegin(triangle);
+        JLVertex(frontInnerCord[i][0], frontInnerCord[i][1], -thickness/2.0); 
+        JLVertex(frontOuterCord[i][0], frontOuterCord[i][1], -thickness/2.0);
+        JLVertex(frontOuterCord[i+1][0], frontOuterCord[i+1][1], -thickness/2.0);
+      JLEnd();
+
+      //back
+      JLBegin(triangle);
+        JLVertex(frontInnerCord[i][0], frontInnerCord[i][1], thickness/2.0); 
+        JLVertex(frontOuterCord[i][0], frontOuterCord[i][1], thickness/2.0);
+        JLVertex(frontOuterCord[i+1][0], frontOuterCord[i+1][1], -thickness/2.0);
+      JLEnd();
+
+      JLBegin(triangle);
+        JLVertex(frontInnerCord[i][0], frontInnerCord[i][1], thickness/2.0); 
+        JLVertex(frontOuterCord[i][0], frontOuterCord[i][1], thickness/2.0);
+        JLVertex(frontOuterCord[i+1][0], frontOuterCord[i+1][1], thickness/2.0);
+      JLEnd();
+      theta++;
+    }
+    
     
     // Inner & Outer surface
     theta = start;
@@ -228,18 +232,19 @@ void drawRingPart(double radiusX, double radiusY, double width, double thickness
       theta++;
     }
     
-    JLBegin(triangle);
+    JLBegin(quad);
       JLVertex(frontInnerCord[0][0], frontInnerCord[0][1], thickness/2.0);
       JLVertex(backInnerCord[0][0], backInnerCord[0][1], -thickness/2.0);
       JLVertex(frontOuterCord[0][0], frontOuterCord[0][1], thickness/2.0);
       JLVertex(backOuterCord[0][0], backOuterCord[0][1], -thickness/2.0);
     JLEnd();
 
-    JLBegin(triangle);
+    JLBegin(quad);
       JLVertex(frontInnerCord[vertexCount-1][0], frontInnerCord[vertexCount-1][1], thickness/2.0);
       JLVertex(backInnerCord[vertexCount-1][0], backInnerCord[vertexCount-1][1], -thickness/2.0);
       JLVertex(frontOuterCord[vertexCount-1][0], frontOuterCord[vertexCount-1][1], thickness/2.0);
       JLVertex(backOuterCord[vertexCount-1][0], backOuterCord[vertexCount-1][1], -thickness/2.0);
     JLEnd();
+
   JLPopMatrix();
 }

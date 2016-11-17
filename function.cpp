@@ -32,8 +32,8 @@ vertex previous;
 double viewingMatrix[16];
 double rotationMatrix[16];
 double modelMatrix[16]; 
-double stack[32][16];
-double rotateMatrixStack[32][16];
+double stack[10][16];
+double rotateMatrixStack[10][16];
 
 type polygonType;
 int stackCounter;
@@ -66,7 +66,7 @@ void viewNormalization(double * eye, double * center, double * up,
   double projectionMatrix[16], resultMatrix[16];
   
   // projection transform matrix
-  cout << "Projection Matrix" << endl;
+  //cout << "Projection Matrix" << endl;
   projectionMatrix[0] = ( 2 * near ) / ( right -  left);
   projectionMatrix[1] = 0;
   projectionMatrix[2] = ( right + left ) / ( right - left);
@@ -166,8 +166,8 @@ void JLRotate(double angle, int xAxis, int yAxis, int zAxis) {
   if(zAxis)
     rotate('z', newAngle, tempMatrix);
 
-  cout << "rotate" << endl;
-  printmat(4,4, tempMatrix);
+  //cout << "rotate" << endl;
+  //printmat(4,4, tempMatrix);
 
   multiplication(4, 4, 4, modelMatrix, tempMatrix, resultMatrix);
   copymatrix(4, 4, modelMatrix, resultMatrix);
@@ -254,11 +254,11 @@ void JLEnd() {
     double A[] = {v1[0], v1[1], 1, v2[0], v2[1], 1, v3[0], v3[1], 1};
     double z[] = {v1[2], v2[2], v3[2]};
     
-    cout << "A" << endl;
-    printmat(3,3, A);
+    //cout << "A" << endl;
+    //printmat(3,3, A);
     
-    cout << "z values: " << endl;
-    printmat(3,1, z);
+    //cout << "z values: " << endl;
+    //printmat(3,1, z);
     
     double inv[9], aTran[9], result1[9], result2[9];
     transpose(3,3,A , aTran);
@@ -273,8 +273,8 @@ void JLEnd() {
     
     //multiplication(3,3,1, inv, z, coefficient);
     
-    cout << "inv" << endl;
-    printmat(3,1, inv);
+    //cout << "inv" << endl;
+    //printmat(3,1, inv);
 
     //clipping(polygon_tri);   
     lineDrawing(polygon_tri);
@@ -312,11 +312,11 @@ void JLEnd() {
     double A[] = {v1[0], v1[1], 1, v2[0], v2[1], 1, v3[0], v3[1], 1};
     double z[] = {v1[2], v2[2], v3[2]};
     
-    cout << "A" << endl;
-    printmat(3,3, A);
+    //cout << "A" << endl;
+    //printmat(3,3, A);
     
-    cout << "z values: " << endl;
-    printmat(3,1, z);
+    //cout << "z values: " << endl;
+    //printmat(3,1, z);
     
     double inv[9], aTran[9], result1[9], result2[9];
     transpose(3,3,A , aTran);
@@ -331,8 +331,8 @@ void JLEnd() {
     
     //multiplication(3,3,1, inv, z, coefficient);
     
-    cout << "inv" << endl;
-    printmat(3,1, inv);
+    //cout << "inv" << endl;
+    //printmat(3,1, inv);
     
     //clipping(polygon_quad);
     lineDrawing(polygon_quad);
@@ -375,8 +375,8 @@ void JLEnd() {
 void JLVertex(double x, double y, double z) {
     
 
-  cout << "modelMatrix" << endl;
-  printmat(4,4, modelMatrix);  
+  //cout << "modelMatrix" << endl;
+  //printmat(4,4, modelMatrix);  
   double coord[] = {x, y, z, 1};
   double finalv[4];
   double resultMatrix[16];
@@ -386,16 +386,16 @@ void JLVertex(double x, double y, double z) {
   
   // Geometric transform
   double globalCoord[4];
-  cout << "printing rotationMatrix" << endl;
-  printmat(4,4,rotationMatrix);
+  //cout << "printing rotationMatrix" << endl;
+  //printmat(4,4,rotationMatrix);
   //multiplication(4,4,4, modelMatrix, rotationMatrix, resultMatrix);
   multiplication(4,4,1, rotationMatrix, coord, globalCoord);
   //multiplication(4,4,1, tetete, temp, globalCoord);
   vertex global = {globalCoord[0], globalCoord[1], globalCoord[2]};
   globalPoints.push_back(global);
   
-  cout << "globalCoord" << endl;
-  printmat(4,1,globalCoord);
+  //cout << "globalCoord" << endl;
+  //printmat(4,1,globalCoord);
   //printmat(4,1,finalv);
   
   
@@ -403,7 +403,7 @@ void JLVertex(double x, double y, double z) {
   v.x = finalv[0];
   v.y = finalv[1]; 
   v.z = finalv[2]; 
-  cout << "vertex: " << v.x << " " << v.y << " " << v.z << endl;
+  //cout << "vertex: " << v.x << " " << v.y << " " << v.z << endl;
     
   switch(polygonType) {
     case triangle:
