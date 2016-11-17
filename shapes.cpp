@@ -198,8 +198,6 @@ void drawRingPart(double radiusX, double radiusY, double width, double thickness
       if(theta == 360) {
         theta = 0;
       }
-
-      double radian = theta * PI / 180;
       // Inner
       
       JLBegin(triangle);

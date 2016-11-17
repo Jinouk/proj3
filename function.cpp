@@ -63,7 +63,7 @@ void viewNormalization(double * eye, double * center, double * up,
   }
 
   double w[3], u[3], v[3];
-  double projectionMatrix[16], matrix2[16], resultMatrix[16];
+  double projectionMatrix[16], resultMatrix[16];
   
   // projection transform matrix
   cout << "Projection Matrix" << endl;
@@ -225,8 +225,8 @@ void JLEnd() {
   list <vertex> ::iterator iterator;
 
   double v1[3],v2[3],v3[3];
-  double AB[3], AC[3], coefficient[3]; 
-  double d;
+  double coefficient[3]; 
+  
 
   if(polygonType == triangle){
     
@@ -275,9 +275,6 @@ void JLEnd() {
     
     cout << "inv" << endl;
     printmat(3,1, inv);
-    
-    cout << "ddd" << endl;
-    printmat(3,1,coefficient);
 
     //clipping(polygon_tri);   
     lineDrawing(polygon_tri);
@@ -336,9 +333,6 @@ void JLEnd() {
     
     cout << "inv" << endl;
     printmat(3,1, inv);
-    
-    cout << "ddd" << endl;
-    printmat(3,1,coefficient);
     
     //clipping(polygon_quad);
     lineDrawing(polygon_quad);
@@ -495,7 +489,7 @@ void translate(double * matrix, double x, double y, double z) {
 }
 
 void normalize(double * vector, int count) {
-  double denominator;
+  double denominator = 0;
 
   for (int i = 0; i < count; i++) {
     denominator += (vector[i] * vector[i]);
@@ -678,115 +672,6 @@ void clipping(list <edge>& polygon) {
 
 
   counter = 0;
-  /*for(iterator = polygon.begin(); iterator != polygon.end(); ++iterator) {
-    double point1x = iterator->v1.x;
-    double point1y = iterator->v1.y;
-    double point2x = iterator->v2.x;
-    double point2y = iterator->v2.y;
-    
-
-    if(polygonType == triangle) {
-      // both vertices outside of the border
-      if((point1x > 1 && point2x > 1) || (point1x < -1 && point2x > -1) ||
-         (point1y > 1 && point2y > 1) || (point1y < -1 && point2y < -1)) {
-        // if first edge is outside
-        if(counter == 0){
-          vertex v1 = {verticestri[2][3], verticestri[2][4], verticestri[2][5]};
-          vertex v2 = {verticestri[1][0], verticestri[1][1], verticestri[1][2]};
-
-          iterator->v1 = v1;
-          iterator->v2 = v2;
-        }
-        else if(counter == 1) {
-          vertex v1 = {verticestri[0][3], verticestri[0][4], verticestri[0][5]};
-          vertex v2 = {verticestri[2][0], verticestri[2][1], verticestri[2][2]};
-
-          iterator->v1 = v1;
-          iterator->v2 = v2;
-        }
-        else {
-          vertex v1 = {verticestri[1][3], verticestri[1][4], verticestri[1][5]};
-          vertex v2 = {verticestri[0][0], verticestri[0][1], verticestri[0][2]};
-
-          iterator->v1 = v1;
-          iterator->v2 = v2;
-        }
-      }
-      // vertices ended up into a same coordinate
-      else{
-        if(point1x == point2x && point1y == point2y) {
-          if(counter == 0){
-            vertex v = {verticestri[2][3], verticestri[2][4], verticestri[2][5]};
-            iterator->v1 = v;
-          }
-          else if(counter == 1) {
-            vertex v = {verticestri[0][3], verticestri[0][4], verticestri[0][5]};
-            iterator->v1 = v;
-          }
-          else{
-            vertex v = {verticestri[1][3], verticestri[1][4], verticestri[1][5]};
-            iterator->v1 = v;
-          }
-        }
-      } 
-    }
-    else {
-      // both vertices outside of the border
-      if((point1x > 1 && point2x > 1) || (point1x < -1 && point2x > -1) ||
-         (point1y > 1 && point2y > 1) || (point1y < -1 && point2y < -1)) {
-        // if first edge is outside
-        if(counter == 0){
-          vertex v1 = {verticesquad[3][3], verticesquad[3][4], verticesquad[3][5]};
-          vertex v2 = {verticesquad[1][0], verticesquad[1][1], verticesquad[1][2]};
-
-          iterator->v1 = v1;
-          iterator->v2 = v2;
-        }
-        else if(counter == 1) {
-          vertex v1 = {verticesquad[0][3], verticesquad[0][4], verticesquad[0][5]};
-          vertex v2 = {verticesquad[2][0], verticesquad[2][1], verticesquad[2][3]};
-
-          iterator->v1 = v1;
-          iterator->v2 = v2;
-        }
-        else if(counter == 2){
-          vertex v1 = {verticesquad[1][3], verticesquad[1][4], verticesquad[1][5]};
-          vertex v2 = {verticesquad[3][0], verticesquad[3][1], verticesquad[3][2]};
-
-          iterator->v1 = v1;
-          iterator->v2 = v2;
-        }
-        else {
-          vertex v1 = {verticesquad[2][3], verticesquad[2][4], verticesquad[2][5]};
-          vertex v2 = {verticesquad[0][0], verticesquad[0][1], verticesquad[0][2]};
-
-          iterator->v1 = v1;
-          iterator->v2 = v2;
-        }
-      }
-      else{
-        if(point1x == point2x && point1y == point2y) {
-          if(counter == 0){
-            vertex v = {verticesquad[3][3], verticesquad[3][4], verticesquad[3][5]};
-            iterator->v1 = v;
-          }
-          else if(counter == 1) {
-            vertex v = {verticesquad[0][3], verticesquad[0][4], verticesquad[0][5]};
-            iterator->v1 = v;
-          }
-          else if(counter == 2){
-            vertex v = {verticesquad[1][3], verticesquad[1][4], verticesquad[1][5]};
-            iterator->v1 = v;
-          }
-          else {
-            vertex v = {verticesquad[2][3], verticesquad[2][4], verticesquad[2][5]};
-            iterator->v1 = v;
-          }
-        }
-      }
-    }
-    counter++;
-  }*/
 }
 
 void lineDrawing(list <edge>& polygon) {
